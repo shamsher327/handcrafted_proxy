@@ -19,3 +19,4 @@
  - Select request method GET/POST.
  - Send header information.
  
+ https://github.com/shamsher327/handcrafted_proxy/blob/master/Handcrafted%20Reverse%20Proxy%20Access%20%20%20DRUPAL%207.png
