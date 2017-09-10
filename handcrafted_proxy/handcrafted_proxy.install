@@ -1,0 +1,78 @@
+<?php
+
+/**
+ * @file
+ * Defines url for all the static files "handcrafted_proxy" module.
+ */
+
+/**
+ * Implements hook_uninstall().
+ * Variable for default path set for configuration
+ */
+function handcrafted_proxy_uninstall() {
+  db_delete('end_points_and_target');
+}
+
+
+/**
+ * Implements Hook_schema().
+ *
+ * @return array
+ */
+function handcrafted_proxy_schema() {
+  $schema = [];
+
+  // End point data  base table.
+  $schema['end_points_and_target'] = [
+    'description' => 'Store end points and target proxy',
+    'fields'      => [
+      'id'              => [
+        'description' => 'unique ID.',
+        'type'        => 'serial',
+        'unsigned'    => TRUE,
+        'not null'    => TRUE,
+      ],
+      'deployment'      => [
+        'description' => 'The Web access URL.',
+        'type'        => 'varchar',
+        'length'      => 64,
+        'not null'    => TRUE,
+        'default'     => '',
+      ],
+      'endpoint'        => [
+        'description' => 'End point URL.',
+        'type'        => 'varchar',
+        'length'      => 128,
+        'not null'    => TRUE,
+        'default'     => '',
+      ],
+      'target'          => [
+        'description' => 'Target URL.',
+        'type'        => 'varchar',
+        'length'      => 128,
+        'not null'    => TRUE,
+        'default'     => '',
+      ],
+      'response_format' => [
+        'description' => 'Response format.',
+        'type'        => 'varchar',
+        'length'      => 128,
+        'not null'    => TRUE,
+        'default'     => '',
+      ],
+      'method_type'     => [
+        'description' => 'Method Type.',
+        'type'        => 'varchar',
+        'length'      => 128,
+        'not null'    => TRUE,
+        'default'     => '',
+      ],
+    ],
+    'indexes'     => [
+      'id' => ['id'],
+    ],
+    'primary key' => ['id'],
+  ];
+
+  return $schema;
+}

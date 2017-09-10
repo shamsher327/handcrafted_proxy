@@ -1,0 +1,7 @@
+name = Proxy server
+description = "Reverse Proxy server."
+core = "7.x"
+package = 'proxy-server'
+version = "7.x"
+dependencies[] = services
+configure = admin/config/handcrafted/handcrafted-config/settings

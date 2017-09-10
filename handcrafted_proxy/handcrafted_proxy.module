@@ -1,0 +1,152 @@
+<?php
+
+/**
+ * @file
+ * Defines url for all the static files "handcrafted_proxy".
+ */
+
+/**
+ * Implements hook_menu().
+ *
+ * This function add a menu item to admin menus for our module configurations.
+ */
+function handcrafted_proxy_menu() {
+  $items = [];
+
+  $items['admin/config/handcrafted'] = [
+    'title'            => 'Handcrafted Proxy Server',
+    'description'      => 'General Handcrafted related configuration.',
+    'position'         => 'right',
+    'weight'           => -20,
+    'access arguments' => ['access administration pages'],
+    'page callback'    => 'handcrafted_proxy_admin_menu_block_page',
+    'access arguments' => ['access administration pages'],
+    'file'             => 'handcrafted_proxy.admin.inc',
+  ];
+
+  $items['admin/config/handcrafted/handcrafted-config'] = [
+    'title'            => 'Handcrafted Reverse Proxy Access',
+    'description'      => 'Configuration settings for handcrafted',
+    'page callback'    => 'drupal_get_form',
+    'page arguments'   => ['handcrafted_proxy_config'],
+    'access callback'  => 'user_access',
+    'access arguments' => ['administer access handcrafted'],
+    'type'             => MENU_NORMAL_ITEM,
+    'weight'           => 0,
+    'file'             => 'handcrafted_proxy.admin.inc',
+  ];
+
+  $items['admin/config/handcrafted/handcrafted-config/settings'] = [
+    'title' => 'Settings',
+    'type'  => MENU_DEFAULT_LOCAL_TASK,
+    'file'  => 'handcrafted_proxy.admin.inc',
+  ];
+
+  $items['delete/end_point/%'] = [
+    'title'            => 'Delete end point and target.',
+    'page callback'    => 'delete_end_point_target',
+    'page arguments'   => [2],
+    'access callback'  => 'user_access',
+    'access arguments' => ['administer access handcrafted'],
+    'type'             => MENU_CALLBACK,
+  ];
+
+  $items['send/web_request/%/%'] = [
+    'title'            => 'Get Data from reverse proxy.',
+    'page callback'    => 'get_all_handcrafted_access',
+    'page arguments'   => [2, 3],
+    'access callback'  => 'user_access',
+    'access arguments' => ['administer access handcrafted'],
+    'type'             => MENU_CALLBACK,
+  ];
+
+  return $items;
+
+}
+
+/**
+ * Delete operation table from database.
+ *
+ * @param $id
+ */
+function delete_end_point_target($id) {
+  db_delete('end_points_and_target')->condition('id', $id)->execute();
+  drupal_goto('admin/config/handcrafted/handcrafted-config/settings');
+}
+
+/**
+ * Implements hook_permission().
+ */
+function handcrafted_proxy_permission() {
+  return [
+    'access handcrafted' => [
+      'title'       => t('Access handcrafted'),
+      'description' => t('Use reverse proxy handcrafted.'),
+    ],
+  ];
+}
+
+/**
+ * Implements hook_services_resources().
+ */
+function handcrafted_proxy_services_resources() {
+
+  // Get all endpoints URL.
+  $sql = db_select('end_points_and_target', 'end')->fields('end', [
+    'deployment',
+    'endpoint',
+    'target',
+    'method_type',
+    'response_format',
+  ])->execute();
+
+  // Create custom web services resources.
+  $end_point_resources = [];
+  while ($record = $sql->fetchAssoc()) {
+    $endpoint = str_replace('/', '', $record['endpoint']);
+    $end_point_resources[$endpoint]['actions']['get'] = [
+      'callback'        => 'get_all_handcrafted_access',
+      'access callback' => 'user_is_logged_in',
+    ];
+  }
+  return $end_point_resources;
+}
+
+/**
+ * @return \stdClass
+ */
+function get_all_handcrafted_access($data, $format) {
+  $target = isset($data) ? $data : arg(1);
+  // Get all endpoints URL.
+  $sql = db_select('end_points_and_target', 'end')->fields('end', [
+    'endpoint',
+    'target',
+    'response_format',
+  ])->condition('end.endpoint', '/' . $target, 'LIKE')->execute()->fetchAssoc();
+
+  // Get target and format value.
+  $target = $sql['target'];
+  $result_format = $sql['response_format'];
+
+  // Header information for drupal_http_request
+  $options = [
+    'method'  => 'GET',
+    'timeout' => 15,
+  ];
+
+  // Get result and convert it to decode and readable.
+  $result = drupal_http_request($target, $options);
+
+  // Return result based on format.
+  if (isset($format) && $format == 'array') {
+    echo '<pre>';
+    print_r(json_decode($result->data, TRUE)['items']);
+  }
+  elseif (isset($format) && $format == 'json') {
+    echo '<pre>';
+    print_r($result);
+  }
+  else {
+    return drupal_json_decode($result->data);
+  }
+}
